@@ -1,6 +1,6 @@
 {
 	"name": "bare-prom-client",
-	"version": "15.1.4",
+	"version": "15.1.5",
 	"description": "Client for prometheus",
 	"main": "index.js",
 	"files": [
