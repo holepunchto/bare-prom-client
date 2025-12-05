@@ -1,6 +1,6 @@
 {
 	"name": "bare-prom-client",
-	"version": "15.1.5",
+	"version": "15.1.6",
 	"description": "Client for prometheus",
 	"main": "index.js",
 	"files": [
@@ -27,10 +27,10 @@
 		"zlib": {
 			"bare": "bare-zlib"
 		},
-    "perf_hooks": {
-      "bare": "bare-performance",
-      "default": "perf_hooks"
-    },
+		"perf_hooks": {
+			"bare": "bare-performance",
+			"default": "perf_hooks"
+		},
 		"process": {
 			"bare": "bare-process"
 		},
