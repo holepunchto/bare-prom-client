@@ -1,3 +1,5 @@
+Forked from https://github.com/siimon/prom-client to make compatible with bare. All pre-fork intellectual property belongs to the original authors
+
 # Prometheus client for node.js [![Actions Status](https://github.com/siimon/prom-client/workflows/Node.js%20CI/badge.svg?branch=master)](https://github.com/siimon/prom-client/actions)
 
 A prometheus client for Node.js that supports histogram, summaries, gauges and
