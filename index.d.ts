@@ -313,6 +313,7 @@ export class Counter<T extends string = string> {
 	remove(labels: LabelValues<T>): void;
 }
 
+/** Counters go up, and reset when the process restarts. */
 export namespace Counter {
 	interface Internal {
 		/**
@@ -428,6 +429,7 @@ export class Gauge<T extends string = string> {
 	remove(labels: LabelValues<T>): void;
 }
 
+/** Gauges are similar to Counters but a Gauge's value can be decreased. */
 export namespace Gauge {
 	interface Internal<T extends string> {
 		/**
@@ -560,6 +562,7 @@ export class Histogram<T extends string = string> {
 	remove(labels: LabelValues<T>): void;
 }
 
+/** Histograms track sizes and frequency of events. */
 export namespace Histogram {
 	interface Internal<T extends string> {
 		/**
@@ -662,6 +665,7 @@ export class Summary<T extends string = string> {
 	remove(labels: LabelValues<T>): void;
 }
 
+/** Summaries calculate percentiles of observed values. */
 export namespace Summary {
 	interface Internal<T extends string> {
 		/**

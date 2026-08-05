@@ -36,586 +36,1036 @@ registry, call
 `client.AggregatorRegistry.setRegistries(registryOrArrayOfRegistries)` from the
 worker processes.
 
+<!-- bare-refgen:api start -->
+
 ## API
 
-### Default metrics
+### Registry
 
-There are some default metrics recommended by Prometheus
-[itself](https://prometheus.io/docs/instrumenting/writing_clientlibs/#standard-and-runtime-collectors).
-To collect these, call `collectDefaultMetrics`. In addition, some
-Node.js-specific metrics are included, such as event loop lag, active handles,
-GC and Node.js version. See [lib/metrics](lib/metrics) for a list of all
+#### `clear(): void`
+
+Remove all metrics from the registry
+
+#### `contentType: BoundRegistryContentType`
+
+Gets the Content-Type of the metrics for use in the response headers.
+
+#### `getMetricsAsArray(): MetricObject[]`
+
+Get all metrics as objects
+
+**Returns** `MetricObject[]` — All registered metrics as plain objects.
+
+#### `getMetricsAsJSON(): Promise<MetricObjectWithValues<MetricValue<string>>[]>`
+
+Get all metrics as objects
+
+**Returns** `Promise<MetricObjectWithValues<MetricValue<string>>[]>` — A promise resolving to all registered metrics as objects, each with its current values.
+
+#### `getSingleMetric<T extends string>(name: string): Metric<T> | undefined`
+
+Get a single metric
+
+**Parameters**
+
+| Parameter | Type     | Default | Description            |
+| --------- | -------- | ------- | ---------------------- |
+| `name`    | `string` | —       | The name of the metric |
+
+**Returns** `Metric<T> | undefined` — The registered metric named `name`, or `undefined` if none is registered.
+
+#### `getSingleMetricAsString(name: string): Promise<string>`
+
+Get a string representation of a single metric by name
+
+**Parameters**
+
+| Parameter | Type     | Default | Description            |
+| --------- | -------- | ------- | ---------------------- |
+| `name`    | `string` | —       | The name of the metric |
+
+**Returns** `Promise<string>` — A promise resolving to the exposition-format string for the named metric.
+
+#### `metrics(): Promise<string>`
+
+Get string representation for all metrics
+
+**Returns** `Promise<string>` — A promise resolving to the exposition-format string for all registered metrics.
+
+#### `registerMetric<T extends string>(metric: Metric<T>): void`
+
+Register metric to register
+
+**Parameters**
+
+| Parameter | Type        | Default | Description               |
+| --------- | ----------- | ------- | ------------------------- |
+| `metric`  | `Metric<T>` | —       | Metric to add to register |
+
+#### `Registry.merge(registers: Registry[]): Registry`
+
+Merge registers
+
+**Parameters**
+
+| Parameter   | Type         | Default | Description                              |
+| ----------- | ------------ | ------- | ---------------------------------------- |
+| `registers` | `Registry[]` | —       | The registers you want to merge together |
+
+**Returns** `Registry` — A new `Registry` containing the metrics of every registry in `registers`.
+
+#### `Registry.OPENMETRICS_CONTENT_TYPE: OpenMetricsContentType`
+
+HTTP OpenMetrics Content-Type for metrics response headers.
+
+#### `Registry.PROMETHEUS_CONTENT_TYPE: PrometheusContentType`
+
+HTTP Prometheus Content-Type for metrics response headers.
+
+#### `removeSingleMetric(name: string): void`
+
+Remove a single metric
+
+**Parameters**
+
+| Parameter | Type     | Default | Description                      |
+| --------- | -------- | ------- | -------------------------------- |
+| `name`    | `string` | —       | The name of the metric to remove |
+
+#### `resetMetrics(): void`
+
+Reset all metrics in the registry
+
+#### `setContentType(contentType: BoundRegistryContentType): void`
+
+Set the content type of a registry. Used to change between Prometheus and
+OpenMetrics versions.
+
+**Parameters**
+
+| Parameter     | Type                       | Default | Description              |
+| ------------- | -------------------------- | ------- | ------------------------ |
+| `contentType` | `BoundRegistryContentType` | —       | The type of the registry |
+
+#### `setDefaultLabels(labels: object): void`
+
+Set static labels to every metric emitted by this registry
+
+**Parameters**
+
+| Parameter | Type     | Default | Description                                                                         |
+| --------- | -------- | ------- | ----------------------------------------------------------------------------------- |
+| `labels`  | `object` | —       | Name/value pairs, for example `{ defaultLabel: 'value', anotherLabel: 'value 2' }`. |
+
+### AggregatorRegistry
+
+#### `AggregatorRegistry.aggregate`
+
+```ts
+AggregatorRegistry.aggregate<T extends RegistryContentType>(metricsArr: Array<object>): Registry<T>
+```
+
+Creates a new Registry instance from an array of metrics that were
+created by `registry.getMetricsAsJSON()`. Metrics are aggregated using
+the method specified by their `aggregator` property, or by summation if
+`aggregator` is undefined.
+
+**Parameters**
+
+| Parameter    | Type            | Default | Description                                                               |
+| ------------ | --------------- | ------- | ------------------------------------------------------------------------- |
+| `metricsArr` | `Array<object>` | —       | Array of metrics, each of which created by `registry.getMetricsAsJSON()`. |
+
+**Returns** `Registry<T>` — aggregated registry.
+
+#### `AggregatorRegistry.setRegistries`
+
+```ts
+AggregatorRegistry.setRegistries(regs: | Array<
+					Registry<PrometheusContentType> | Registry<OpenMetricsContentType>
+			  >
+			| Registry<PrometheusContentType>
+			| Registry<OpenMetricsContentType>): void
+```
+
+Sets the registry or registries to be aggregated. Call from workers to
+use a registry/registries other than the default global registry.
+
+**Parameters**
+
+| Parameter | Type                                                                                                                                                     | Default | Description                              |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------------- |
+| `regs`    | `\| Array< Registry<PrometheusContentType> \| Registry<OpenMetricsContentType> > \| Registry<PrometheusContentType> \| Registry<OpenMetricsContentType>` | —       | Registry or registries to be aggregated. |
+
+#### `clusterMetrics(): Promise<string>`
+
+Gets aggregated metrics for all workers.
+
+**Returns** `Promise<string>` — Promise that resolves with the aggregated
 metrics.
 
-NOTE: Some of the metrics, concerning File Descriptors and Memory, are only
-available on Linux.
+### Counter
 
-`collectDefaultMetrics` optionally accepts a config object with following entries:
-
-- `prefix` an optional prefix for metric names. Default: no prefix.
-- `register` to which registry the metrics should be registered. Default: the global default registry.
-- `gcDurationBuckets` with custom buckets for GC duration histogram. Default buckets of GC duration histogram are `[0.001, 0.01, 0.1, 1, 2, 5]` (in seconds).
-- `eventLoopMonitoringPrecision` with sampling rate in milliseconds. Must be greater than zero. Default: 10.
-
-To register metrics to another registry, pass it in as `register`:
-
-```js
-const client = require('prom-client');
-const collectDefaultMetrics = client.collectDefaultMetrics;
-const Registry = client.Registry;
-const register = new Registry();
-collectDefaultMetrics({ register });
-```
-
-To use custom buckets for GC duration histogram, pass it in as `gcDurationBuckets`:
-
-```js
-const client = require('prom-client');
-const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({ gcDurationBuckets: [0.1, 0.2, 0.3] });
-```
-
-To prefix metric names with your own arbitrary string, pass in a `prefix`:
-
-```js
-const client = require('prom-client');
-const collectDefaultMetrics = client.collectDefaultMetrics;
-const prefix = 'my_application_';
-collectDefaultMetrics({ prefix });
-```
-
-To apply generic labels to all default metrics, pass an object to the `labels` property (useful if you're working in a clustered environment):
-
-```js
-const client = require('prom-client');
-const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({
-  labels: { NODE_APP_INSTANCE: process.env.NODE_APP_INSTANCE },
-});
-```
-
-You can get the full list of metrics by inspecting
-`client.collectDefaultMetrics.metricsList`.
-
-Default metrics are collected on scrape of metrics endpoint,
-not on an interval.
-
-```js
-const client = require('prom-client');
-
-const collectDefaultMetrics = client.collectDefaultMetrics;
-
-collectDefaultMetrics();
-```
-
-### Custom Metrics
-
-All metric types have two mandatory parameters: `name` and `help`. Refer to
-<https://prometheus.io/docs/practices/naming/> for guidance on naming metrics.
-
-For metrics based on point-in-time observations (e.g. current memory usage, as
-opposed to HTTP request durations observed continuously in a histogram), you
-should provide a `collect()` function, which will be invoked when Prometheus
-scrapes your metrics endpoint. `collect()` can either be synchronous or return a
-promise. See **Gauge** below for an example. (Note that you should not update
-metric values in a `setInterval` callback; do so in this `collect` function
-instead.)
-
-See [**Labels**](#labels) for information on how to configure labels for all
-metric types.
-
-#### Counter
+#### `new Counter(configuration: CounterConfiguration<T>)`
 
 Counters go up, and reset when the process restarts.
 
-```js
-const client = require('prom-client');
-const counter = new client.Counter({
-  name: 'metric_name',
-  help: 'metric_help',
-});
-counter.inc(); // Increment by 1
-counter.inc(10); // Increment by 10
+**Parameters**
+
+| Parameter       | Type                      | Default | Description                                                              |
+| --------------- | ------------------------- | ------- | ------------------------------------------------------------------------ |
+| `configuration` | `CounterConfiguration<T>` | —       | Configuration when creating a Counter metric. Name and Help is required. |
+
+#### `Counter.Internal`
+
+```ts
+interface Internal {
+  inc(value?: number): void;
+}
 ```
 
-#### Gauge
+#### `Counter.get(): Promise<MetricObjectWithValues<MetricValue<T>>>`
+
+Get counter metric object
+
+**Returns** `Promise<MetricObjectWithValues<MetricValue<T>>>` — A promise resolving to the counter's current value as a metric object.
+
+#### `Counter.inc(labels: LabelValues<T>, value?: number): void`
+
+Increment for given labels
+
+Overloads:
+
+```ts
+inc(labels: LabelValues<T>, value?: number): void
+inc(value?: number): void
+inc(incData: IncreaseDataWithExemplar<T>): void
+```
+
+**Parameters**
+
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels`  | `LabelValues<T>` | —       | Object with label keys and values |
+| `value?`  | `number`         | —       | The number to increment with      |
+
+#### `labels(...values: string[]): Counter.Internal`
+
+Return the child for given labels
+
+Overloads:
+
+```ts
+labels(...values: string[]): Counter.Internal
+labels(labels: LabelValues<T>): Counter.Internal
+```
+
+**Parameters**
+
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+**Returns** `Counter.Internal` — Configured counter with given labels
+
+#### `Counter.remove(...values: string[]): void`
+
+Remove metrics for the given label values
+
+Overloads:
+
+```ts
+remove(...values: string[]): void
+remove(labels: LabelValues<T>): void
+```
+
+**Parameters**
+
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+#### `Counter.reset(): void`
+
+Reset counter values
+
+### Gauge
+
+#### `new Gauge(configuration: GaugeConfiguration<T>)`
 
 Gauges are similar to Counters but a Gauge's value can be decreased.
 
-```js
-const client = require('prom-client');
-const gauge = new client.Gauge({ name: 'metric_name', help: 'metric_help' });
-gauge.set(10); // Set to 10
-gauge.inc(); // Increment 1
-gauge.inc(10); // Increment 10
-gauge.dec(); // Decrement by 1
-gauge.dec(10); // Decrement by 10
+**Parameters**
+
+| Parameter       | Type                    | Default | Description                                                            |
+| --------------- | ----------------------- | ------- | ---------------------------------------------------------------------- |
+| `configuration` | `GaugeConfiguration<T>` | —       | Configuration when creating a Gauge metric. Name and Help is mandatory |
+
+#### `dec(labels: LabelValues<T>, value?: number): void`
+
+Decrement gauge
+
+Overloads:
+
+```ts
+dec(labels: LabelValues<T>, value?: number): void
+dec(value?: number): void
 ```
 
-##### Configuration
+**Parameters**
 
-If the gauge is used for a point-in-time observation, you should provide a
-`collect` function:
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels`  | `LabelValues<T>` | —       | Object with label keys and values |
+| `value?`  | `number`         | —       | Value to decrement with           |
 
-```js
-const client = require('prom-client');
-new client.Gauge({
-  name: 'metric_name',
-  help: 'metric_help',
-  collect() {
-    // Invoked when the registry collects its metrics' values.
-    // This can be synchronous or it can return a promise/be an async function.
-    this.set(/* the current value */);
-  },
-});
+#### `Gauge.Internal`
+
+```ts
+interface Internal<T extends string> {
+  inc(value?: number): void;
+  dec(value?: number): void;
+  set(value: number): void;
+  setToCurrentTime(): void;
+  startTimer(): (labels?: LabelValues<T>) => number;
+}
 ```
 
-```js
-// Async version:
-const client = require('prom-client');
-new client.Gauge({
-  name: 'metric_name',
-  help: 'metric_help',
-  async collect() {
-    // Invoked when the registry collects its metrics' values.
-    const currentValue = await somethingAsync();
-    this.set(currentValue);
-  },
-});
+#### `Gauge.get(): Promise<MetricObjectWithValues<MetricValue<T>>>`
+
+Get gauge metric object
+
+**Returns** `Promise<MetricObjectWithValues<MetricValue<T>>>` — A promise resolving to the gauge's current value as a metric object.
+
+#### `Gauge.inc(labels: LabelValues<T>, value?: number): void`
+
+Increment gauge for given labels
+
+Overloads:
+
+```ts
+inc(labels: LabelValues<T>, value?: number): void
+inc(value?: number): void
 ```
 
-Note that you should not use arrow functions for `collect` because arrow
-functions will not have the correct value for `this`.
+**Parameters**
 
-##### Utility Functions
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels`  | `LabelValues<T>` | —       | Object with label keys and values |
+| `value?`  | `number`         | —       | The value to increment with       |
 
-```js
-// Set value to current time in seconds:
-gauge.setToCurrentTime();
+#### `labels(...values: string[]): Gauge.Internal<T>`
 
-// Record durations:
-const end = gauge.startTimer();
-http.get('url', res => {
-  end();
-});
+Return the child for given labels
+
+Overloads:
+
+```ts
+labels(...values: string[]): Gauge.Internal<T>
+labels(labels: LabelValues<T>): Gauge.Internal<T>
 ```
 
-#### Histogram
+**Parameters**
+
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+**Returns** `Gauge.Internal<T>` — Configured gauge with given labels
+
+#### `Gauge.remove(...values: string[]): void`
+
+Remove metrics for the given label values
+
+Overloads:
+
+```ts
+remove(...values: string[]): void
+remove(labels: LabelValues<T>): void
+```
+
+**Parameters**
+
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+#### `Gauge.reset(): void`
+
+Reset gauge values
+
+#### `set(labels: LabelValues<T>, value: number): void`
+
+Set gauge value for labels
+
+Overloads:
+
+```ts
+set(labels: LabelValues<T>, value: number): void
+set(value: number): void
+```
+
+**Parameters**
+
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels`  | `LabelValues<T>` | —       | Object with label keys and values |
+| `value`   | `number`         | —       | The value to set                  |
+
+#### `setToCurrentTime(labels?: LabelValues<T>): void`
+
+Set gauge value to current epoch time in seconds
+
+**Parameters**
+
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels?` | `LabelValues<T>` | —       | Object with label keys and values |
+
+#### `Gauge.startTimer(labels?: LabelValues<T>): (labels?: LabelValues<T>) => number`
+
+Start a timer. Calling the returned function will set the gauge's value
+to the observed duration in seconds.
+
+**Parameters**
+
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels?` | `LabelValues<T>` | —       | Object with label keys and values |
+
+**Returns** `(labels?: LabelValues<T>) => number` — Function to invoke when timer should be stopped. The value it
+returns is the timed duration.
+
+### Histogram
+
+#### `new Histogram(configuration: HistogramConfiguration<T>)`
 
 Histograms track sizes and frequency of events.
 
-##### Configuration
+**Parameters**
 
-The defaults buckets are intended to cover usual web/RPC requests, but they can
-be overridden. (See also [**Bucket Generators**](#bucket-generators).)
+| Parameter       | Type                        | Default | Description                                                           |
+| --------------- | --------------------------- | ------- | --------------------------------------------------------------------- |
+| `configuration` | `HistogramConfiguration<T>` | —       | Configuration when creating the Histogram. Name and Help is mandatory |
 
-```js
-const client = require('prom-client');
-new client.Histogram({
-  name: 'metric_name',
-  help: 'metric_help',
-  buckets: [0.1, 5, 15, 50, 100, 500],
-});
+#### `Histogram.get(): Promise<MetricObjectWithValues<MetricValueWithName<T>>>`
+
+Get histogram metric object
+
+**Returns** `Promise<MetricObjectWithValues<MetricValueWithName<T>>>` — A promise resolving to the histogram's current buckets and counts as a metric object.
+
+#### `Histogram.Config`
+
+```ts
+interface Config {
+  buckets?: number[];
+}
 ```
 
-##### Examples
+#### `Histogram.Internal`
 
-```js
-const client = require('prom-client');
-const histogram = new client.Histogram({
-  name: 'metric_name',
-  help: 'metric_help',
-});
-histogram.observe(10); // Observe value in histogram
+```ts
+interface Internal<T extends string> {
+  observe(value: number): void;
+  startTimer(): (labels?: LabelValues<T>) => void;
+}
 ```
 
-##### Utility Methods
+#### `labels(...values: string[]): Histogram.Internal<T>`
 
-```js
-const end = histogram.startTimer();
-xhrRequest(function (err, res) {
-  const seconds = end(); // Observes and returns the value to xhrRequests duration in seconds
-});
+Return the child for given labels
+
+Overloads:
+
+```ts
+labels(...values: string[]): Histogram.Internal<T>
+labels(labels: LabelValues<T>): Histogram.Internal<T>
 ```
 
-#### Summary
+**Parameters**
+
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+**Returns** `Histogram.Internal<T>` — Configured histogram with given labels
+
+#### `Histogram.observe(value: number): void`
+
+Observe value
+
+Overloads:
+
+```ts
+observe(value: number): void
+observe(labels: LabelValues<T>, value: number): void
+observe(observeData: ObserveDataWithExemplar<T>): void
+```
+
+**Parameters**
+
+| Parameter | Type     | Default | Description          |
+| --------- | -------- | ------- | -------------------- |
+| `value`   | `number` | —       | The value to observe |
+
+#### `Histogram.remove(...values: string[]): void`
+
+Remove metrics for the given label values
+
+Overloads:
+
+```ts
+remove(...values: string[]): void
+remove(labels: LabelValues<T>): void
+```
+
+**Parameters**
+
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+#### `Histogram.reset(): void`
+
+Reset histogram values
+
+#### `Histogram.startTimer(labels?: LabelValues<T>): (labels?: LabelValues<T>) => number`
+
+Start a timer. Calling the returned function will observe the duration in
+seconds in the histogram.
+
+Overloads:
+
+```ts
+startTimer(labels?: LabelValues<T>): (labels?: LabelValues<T>) => number
+startTimer(labels?: LabelValues<T>, exemplarLabels?: LabelValues<T>): (labels?: LabelValues<T>, exemplarLabels?: LabelValues<T>) => number
+```
+
+**Parameters**
+
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels?` | `LabelValues<T>` | —       | Object with label keys and values |
+
+**Returns** `(labels?: LabelValues<T>) => number` — Function to invoke when timer should be stopped. The value it
+returns is the timed duration.
+
+#### `zero(labels: LabelValues<T>): void`
+
+Initialize the metrics for the given combination of labels to zero
+
+**Parameters**
+
+| Parameter | Type             | Default | Description                                              |
+| --------- | ---------------- | ------- | -------------------------------------------------------- |
+| `labels`  | `LabelValues<T>` | —       | Object with label keys and values to initialize to zero. |
+
+### Summary
+
+#### `new Summary(configuration: SummaryConfiguration<T>)`
 
 Summaries calculate percentiles of observed values.
 
-##### Configuration
+**Parameters**
 
-The default percentiles are: 0.01, 0.05, 0.5, 0.9, 0.95, 0.99, 0.999. But they
-can be overridden by specifying a `percentiles` array. (See also
-[**Bucket Generators**](#bucket-generators).)
+| Parameter       | Type                      | Default | Description                                                            |
+| --------------- | ------------------------- | ------- | ---------------------------------------------------------------------- |
+| `configuration` | `SummaryConfiguration<T>` | —       | Configuration when creating Summary metric. Name and Help is mandatory |
 
-```js
-const client = require('prom-client');
-new client.Summary({
-  name: 'metric_name',
-  help: 'metric_help',
-  percentiles: [0.01, 0.1, 0.9, 0.99],
-});
+#### `Summary.get(): Promise<MetricObjectWithValues<MetricValueWithName<T>>>`
+
+Get summary metric object
+
+**Returns** `Promise<MetricObjectWithValues<MetricValueWithName<T>>>` — A promise resolving to the summary's current percentiles as a metric object.
+
+#### `labels(...values: string[]): Summary.Internal<T>`
+
+Return the child for given labels
+
+Overloads:
+
+```ts
+labels(...values: string[]): Summary.Internal<T>
+labels(labels: LabelValues<T>): Summary.Internal<T>
 ```
 
-To enable the sliding window functionality for summaries you need to add
-`maxAgeSeconds` and `ageBuckets` to the config like this:
+**Parameters**
 
-```js
-const client = require('prom-client');
-new client.Summary({
-  name: 'metric_name',
-  help: 'metric_help',
-  maxAgeSeconds: 600,
-  ageBuckets: 5,
-  pruneAgedBuckets: false,
-});
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+**Returns** `Summary.Internal<T>` — Configured summary with given labels
+
+#### `Summary.observe(value: number): void`
+
+Observe value in summary
+
+Overloads:
+
+```ts
+observe(value: number): void
+observe(labels: LabelValues<T>, value: number): void
 ```
 
-The `maxAgeSeconds` will tell how old a bucket can be before it is reset and
-`ageBuckets` configures how many buckets we will have in our sliding window for
-the summary. If `pruneAgedBuckets` is `false` (default), the metric value will
-always be present, even when empty (its percentile values will be `0`). Set
-`pruneAgedBuckets` to `true` if you don't want to export it when it is empty.
+**Parameters**
 
-##### Examples
+| Parameter | Type     | Default | Description          |
+| --------- | -------- | ------- | -------------------- |
+| `value`   | `number` | —       | The value to observe |
 
-```js
-const client = require('prom-client');
-const summary = new client.Summary({
-  name: 'metric_name',
-  help: 'metric_help',
-});
-summary.observe(10);
+#### `Summary.remove(...values: string[]): void`
+
+Remove metrics for the given label values
+
+Overloads:
+
+```ts
+remove(...values: string[]): void
+remove(labels: LabelValues<T>): void
 ```
 
-##### Utility Methods
+**Parameters**
 
-```js
-const end = summary.startTimer();
-xhrRequest(function (err, res) {
-  end(); // Observes the value to xhrRequests duration in seconds
-});
+| Parameter | Type       | Default | Description  |
+| --------- | ---------- | ------- | ------------ |
+| `values`  | `string[]` | —       | Label values |
+
+#### `Summary.reset(): void`
+
+Reset all values in the summary
+
+#### `Summary.startTimer(labels?: LabelValues<T>): (labels?: LabelValues<T>) => number`
+
+Start a timer. Calling the returned function will observe the duration in
+seconds in the summary.
+
+**Parameters**
+
+| Parameter | Type             | Default | Description                       |
+| --------- | ---------------- | ------- | --------------------------------- |
+| `labels?` | `LabelValues<T>` | —       | Object with label keys and values |
+
+**Returns** `(labels?: LabelValues<T>) => number` — Function to invoke when timer should be stopped
+
+#### `Summary.Config`
+
+```ts
+interface Config {
+  percentiles?: number[];
+}
 ```
 
-### Labels
+#### `Summary.Internal`
 
-All metrics can take a `labelNames` property in the configuration object. All
-label names that the metric support needs to be declared here. There are two
-ways to add values to the labels:
-
-```js
-const client = require('prom-client');
-const gauge = new client.Gauge({
-  name: 'metric_name',
-  help: 'metric_help',
-  labelNames: ['method', 'statusCode'],
-});
-
-// 1st version: Set value to 100 with "method" set to "GET" and "statusCode" to "200"
-gauge.set({ method: 'GET', statusCode: '200' }, 100);
-// 2nd version: Same effect as above
-gauge.labels({ method: 'GET', statusCode: '200' }).set(100);
-// 3rd version: And again the same effect as above
-gauge.labels('GET', '200').set(100);
-```
-
-It is also possible to use timers with labels, both before and after the timer
-is created:
-
-```js
-const end = startTimer({ method: 'GET' }); // Set method to GET, we don't know statusCode yet
-xhrRequest(function (err, res) {
-  if (err) {
-    end({ statusCode: '500' }); // Sets value to xhrRequest duration in seconds with statusCode 500
-  } else {
-    end({ statusCode: '200' }); // Sets value to xhrRequest duration in seconds with statusCode 200
-  }
-});
-```
-
-#### Zeroing metrics with Labels
-
-Metrics with labels can not be exported before they have been observed at least
-once since the possible label values are not known before they're observed.
-
-For histograms, this can be solved by explicitly zeroing all expected label values:
-
-```js
-const histogram = new client.Histogram({
-  name: 'metric_name',
-  help: 'metric_help',
-  buckets: [0.1, 5, 15, 50, 100, 500],
-  labels: ['method'],
-});
-histogram.zero({ method: 'GET' });
-histogram.zero({ method: 'POST' });
-```
-
-#### Strongly typed Labels
-
-Typescript can also enforce label names using `as const`
-
-```typescript
-import * as client from 'prom-client';
-
-const counter = new client.Counter({
-  name: 'metric_name',
-  help: 'metric_help',
-  // add `as const` here to enforce label names
-  labelNames: ['method'] as const,
-});
-
-// Ok
-counter.inc({ method: 1 });
-
-// this is an error since `'methods'` is not a valid `labelName`
-// @ts-expect-error
-counter.inc({ methods: 1 });
-```
-
-#### Default Labels (segmented by registry)
-
-Static labels may be applied to every metric emitted by a registry:
-
-```js
-const client = require('prom-client');
-const defaultLabels = { serviceName: 'api-v1' };
-client.register.setDefaultLabels(defaultLabels);
-```
-
-This will output metrics in the following way:
-
-```
-# HELP process_resident_memory_bytes Resident memory size in bytes.
-# TYPE process_resident_memory_bytes gauge
-process_resident_memory_bytes{serviceName="api-v1"} 33853440 1498510040309
-```
-
-Default labels will be overridden if there is a name conflict.
-
-`register.clear()` will clear default labels.
-
-### Exemplars
-
-The exemplars defined in the OpenMetrics specification can be enabled on Counter
-and Histogram metric types. The default metrics have support for OpenTelemetry,
-they will populate the exemplars with the labels `{traceId, spanId}` and their
-corresponding values.
-
-The format for `inc()` and `observe()` calls are different if exemplars are
-enabled. They get a single object with the format
-`{labels, value, exemplarLabels}`.
-
-When using exemplars, the registry used for metrics should be set to OpenMetrics
-type (including the global or default registry if no registries are specified).
-
-### Registry type
-
-The library supports both the old Prometheus format and the OpenMetrics format.
-The format can be set per registry. For default metrics:
-
-```js
-const Prometheus = require('prom-client');
-Prometheus.register.setContentType(
-  Prometheus.Registry.OPENMETRICS_CONTENT_TYPE,
-);
-```
-
-Currently available registry types are defined by the content types:
-
-**PROMETHEUS_CONTENT_TYPE** - version 0.0.4 of the original Prometheus metrics,
-this is currently the default registry type.
-
-**OPENMETRICS_CONTENT_TYPE** - defaults to version 1.0.0 of the
-[OpenMetrics standard](https://github.com/OpenObservability/OpenMetrics/blob/d99b705f611b75fec8f450b05e344e02eea6921d/specification/OpenMetrics.md).
-
-The HTTP Content-Type string for each registry type is exposed both at module
-level (`prometheusContentType` and `openMetricsContentType`) and as static
-properties on the `Registry` object.
-
-The `contentType` constant exposed by the module returns the default content
-type when creating a new registry, currently defaults to Prometheus type.
-
-### Multiple registries
-
-By default, metrics are automatically registered to the global registry (located
-at `require('prom-client').register`). You can prevent this by specifying
-`registers: []` in the metric constructor configuration.
-
-Using non-global registries requires creating a Registry instance and passing it
-inside `registers` in the metric configuration object. Alternatively you can
-pass an empty `registers` array and register it manually.
-
-Registry has a `merge` function that enables you to expose multiple registries
-on the same endpoint. If the same metric name exists in both registries, an
-error will be thrown.
-
-Merging registries of different types is undefined. The user needs to make sure
-all used registries have the same type (Prometheus or OpenMetrics versions).
-
-```js
-const client = require('prom-client');
-const registry = new client.Registry();
-const counter = new client.Counter({
-  name: 'metric_name',
-  help: 'metric_help',
-  registers: [registry], // specify a non-default registry
-});
-const histogram = new client.Histogram({
-  name: 'metric_name',
-  help: 'metric_help',
-  registers: [], // don't automatically register this metric
-});
-registry.registerMetric(histogram); // register metric manually
-counter.inc();
-
-const mergedRegistries = client.Registry.merge([registry, client.register]);
-```
-
-If you want to use multiple or non-default registries with the Node.js `cluster`
-module, you will need to set the registry/registries to aggregate from:
-
-```js
-const AggregatorRegistry = client.AggregatorRegistry;
-AggregatorRegistry.setRegistries(registry);
-// or for multiple registries:
-AggregatorRegistry.setRegistries([registry1, registry2]);
-```
-
-### Register
-
-You can get all metrics by running `await register.metrics()`, which will return
-a string in the Prometheus exposition format.
-
-#### Getting a single metric value in Prometheus exposition format
-
-If you need to output a single metric in the Prometheus exposition format, you
-can use `await register.getSingleMetricAsString(*name of metric*)`, which will
-return a string for Prometheus to consume.
-
-#### Getting a single metric
-
-If you need to get a reference to a previously registered metric, you can use
-`register.getSingleMetric(*name of metric*)`.
-
-#### Removing metrics
-
-You can remove all metrics by calling `register.clear()`. You can also remove a
-single metric by calling `register.removeSingleMetric(*name of metric*)`.
-
-#### Resetting metrics
-
-If you need to reset all metrics, you can use `register.resetMetrics()`. The
-metrics will remain present in the register and can be used without the need to
-instantiate them again, like you would need to do after `register.clear()`.
-
-#### Cluster metrics
-
-You can get aggregated metrics for all workers in a Node.js cluster with
-`await register.clusterMetrics()`. This method returns a promise that resolves
-with a metrics string suitable for Prometheus to consume.
-
-```js
-const metrics = await register.clusterMetrics();
-
-// - or -
-
-register
-  .clusterMetrics()
-  .then(metrics => {
-    /* ... */
-  })
-  .catch(err => {
-    /* ... */
-  });
+```ts
+interface Internal<T extends string> {
+  observe(value: number): void;
+  startTimer(): (labels?: LabelValues<T>) => number;
+}
 ```
 
 ### Pushgateway
 
-It is possible to push metrics via a
-[Pushgateway](https://github.com/prometheus/pushgateway).
+#### `new Pushgateway(url: string, options?: any, registry?: Registry<T>)`
 
-```js
-const client = require('prom-client');
-let gateway = new client.Pushgateway('http://127.0.0.1:9091');
+**Parameters**
 
-gateway.pushAdd({ jobName: 'test' })
-	.then(({resp, body}) => {
-		/* ... */
-	})
-	.catch(err => {
-		/* ... */
-	})); //Add metric and overwrite old ones
-gateway.push({ jobName: 'test' })
-	.then(({resp, body}) => {
-		/* ... */
-	})
-	.catch(err => {
-		/* ... */
-	})); //Overwrite all metrics (use PUT)
-gateway.delete({ jobName: 'test' })
-	.then(({resp, body}) => {
-		/* ... */
-	})
-	.catch(err => {
-		/* ... */
-	})); //Delete all metrics for jobName
+| Parameter   | Type          | Default | Description                                                              |
+| ----------- | ------------- | ------- | ------------------------------------------------------------------------ |
+| `url`       | `string`      | —       | Complete url to the Pushgateway. If port is needed append url with :port |
+| `options?`  | `any`         | —       | Options                                                                  |
+| `registry?` | `Registry<T>` | —       | Registry                                                                 |
 
-//All gateway requests can have groupings on it
-gateway.pushAdd({ jobName: 'test', groupings: { key: 'value' } })
-	.then(({resp, body}) => {
-		/* ... */
-	})
-	.catch(err => {
-		/* ... */
-	}));
+#### `delete(params: Pushgateway.Parameters): Promise<{ resp?: unknown; body?: unknown }>`
 
-// It's possible to extend the Pushgateway with request options from nodes core
-// http/https library. In particular, you might want to provide an agent so that
-// TCP connections are reused.
-gateway = new client.Pushgateway('http://127.0.0.1:9091', {
-  timeout: 5000, //Set the request timeout to 5000ms
-  agent: new http.Agent({
-    keepAlive: true,
-    keepAliveMsec: 10000,
-    maxSockets: 5,
-  }),
-});
+Delete all metrics for jobName
+
+**Parameters**
+
+| Parameter | Type                     | Default | Description     |
+| --------- | ------------------------ | ------- | --------------- |
+| `params`  | `Pushgateway.Parameters` | —       | Push parameters |
+
+**Returns** `Promise<{ resp?: unknown; body?: unknown }>` — A promise resolving with the Pushgateway HTTP response and body.
+
+#### `push(params: Pushgateway.Parameters): Promise<{ resp?: unknown; body?: unknown }>`
+
+Overwrite all metric (using PUT to Pushgateway)
+
+**Parameters**
+
+| Parameter | Type                     | Default | Description     |
+| --------- | ------------------------ | ------- | --------------- |
+| `params`  | `Pushgateway.Parameters` | —       | Push parameters |
+
+**Returns** `Promise<{ resp?: unknown; body?: unknown }>` — A promise resolving with the Pushgateway HTTP response and body.
+
+#### `pushAdd(params: Pushgateway.Parameters): Promise<{ resp?: unknown; body?: unknown }>`
+
+Add metric and overwrite old ones
+
+**Parameters**
+
+| Parameter | Type                     | Default | Description     |
+| --------- | ------------------------ | ------- | --------------- |
+| `params`  | `Pushgateway.Parameters` | —       | Push parameters |
+
+**Returns** `Promise<{ resp?: unknown; body?: unknown }>` — A promise resolving with the Pushgateway HTTP response and body.
+
+#### `Pushgateway.Parameters`
+
+```ts
+interface Parameters {
+  jobName: string;
+  groupings?: {
+    [key: string]: string;
+  };
+}
 ```
 
-Some gateways such as [Gravel Gateway](https://github.com/sinkingpoint/prometheus-gravel-gateway) do not support grouping by job name, exposing a plain `/metrics` endpoint instead of `/metrics/job/<jobName>`. It's possible to configure a gateway instance to not require a jobName in the options argument.
+### Functions
 
-```js
-gravelGateway = new client.Pushgateway('http://127.0.0.1:9091', {
-  timeout: 5000,
-  requireJobName: false,
-});
-gravelGateway.pushAdd();
+#### `linearBuckets(start: number, width: number, count: number): number[]`
+
+Create an array with equal spacing between the elements
+
+**Parameters**
+
+| Parameter | Type     | Default | Description                      |
+| --------- | -------- | ------- | -------------------------------- |
+| `start`   | `number` | —       | The first value in the array     |
+| `width`   | `number` | —       | The spacing between the elements |
+| `count`   | `number` | —       | The number of items in array     |
+
+**Returns** `number[]` — An array with the requested number of elements
+
+#### `exponentialBuckets(start: number, factor: number, count: number): number[]`
+
+Create an array that grows exponentially
+
+**Parameters**
+
+| Parameter | Type     | Default | Description                  |
+| --------- | -------- | ------- | ---------------------------- |
+| `start`   | `number` | —       | The first value in the array |
+| `factor`  | `number` | —       | The exponential factor       |
+| `count`   | `number` | —       | The number of items in array |
+
+**Returns** `number[]` — An array with the requested number of elements
+
+#### `validateMetricName(name: string): boolean`
+
+Validate a metric name
+
+**Parameters**
+
+| Parameter | Type     | Default | Description          |
+| --------- | -------- | ------- | -------------------- |
+| `name`    | `string` | —       | The name to validate |
+
+**Returns** `boolean` — True if the metric name is valid, false if not
+
+### Constants and variables
+
+#### `register: Registry`
+
+The register that contains all metrics
+
+#### `contentType: RegistryContentType`
+
+HTTP Content-Type for metrics response headers for the default registry,
+defaults to Prometheus text format.
+
+#### `prometheusContentType: PrometheusContentType`
+
+HTTP Prometheus Content-Type for metrics response headers.
+
+#### `openMetricsContentType: OpenMetricsContentType`
+
+HTTP OpenMetrics Content-Type for metrics response headers.
+
+#### `MetricType`
+
+```ts
+enum MetricType {
+  Counter,
+  Gauge,
+  Histogram,
+  Summary,
+}
 ```
 
-### Bucket Generators
+#### `collectDefaultMetrics`
 
-For convenience, there are two bucket generator functions - linear and
-exponential.
-
-```js
-const client = require('prom-client');
-new client.Histogram({
-  name: 'metric_name',
-  help: 'metric_help',
-  buckets: client.linearBuckets(0, 10, 20), //Create 20 buckets, starting on 0 and a width of 10
-});
-
-new client.Histogram({
-  name: 'metric_name',
-  help: 'metric_help',
-  buckets: client.exponentialBuckets(1, 2, 5), //Create 5 buckets, starting on 1 and with a factor of 2
-});
+```ts
+collectDefaultMetrics: {
+	/**
+	 * Configure default metrics
+	 * @param config Configuration object for default metrics collector
+	 */
+	<T extends RegistryContentType>(
+		config?: DefaultMetricsCollectorConfiguration<T>,
+	): void;
+	/** All available default metrics */
+	metricsList: string[];
+}
 ```
 
-### Garbage Collection Metrics
+### Types
 
-To avoid native dependencies in this module, GC statistics for bytes reclaimed
-in each GC sweep are kept in a separate module:
-https://github.com/SimenB/node-prometheus-gc-stats. (Note that that metric may
-no longer be accurate now that v8 uses parallel garbage collection.)
+#### `Charset`
+
+```ts
+type Charset = 'utf-8';
+```
+
+#### `PrometheusMIME`
+
+```ts
+type PrometheusMIME = 'text/plain';
+```
+
+#### `PrometheusMetricsVersion`
+
+```ts
+type PrometheusMetricsVersion = '0.0.4';
+```
+
+#### `OpenMetricsMIME`
+
+```ts
+type OpenMetricsMIME = 'application/openmetrics-text';
+```
+
+#### `OpenMetricsVersion`
+
+```ts
+type OpenMetricsVersion = '1.0.0';
+```
+
+#### `OpenMetricsContentType`
+
+```ts
+type OpenMetricsContentType =
+  `${OpenMetricsMIME}; version=${OpenMetricsVersion}; charset=${Charset}`;
+```
+
+#### `PrometheusContentType`
+
+```ts
+type PrometheusContentType =
+  `${PrometheusMIME}; version=${PrometheusMetricsVersion}; charset=${Charset}`;
+```
+
+#### `RegistryContentType`
+
+```ts
+type RegistryContentType = PrometheusContentType | OpenMetricsContentType;
+```
+
+#### `Collector`
+
+```ts
+type Collector = () => void;
+```
+
+#### `Metric`
+
+```ts
+type Metric<T extends string = string> =
+  | Counter<T>
+  | Gauge<T>
+  | Summary<T>
+  | Histogram<T>;
+```
+
+General metric type
+
+#### `Aggregator`
+
+```ts
+type Aggregator = 'omit' | 'sum' | 'first' | 'min' | 'max' | 'average';
+```
+
+Aggregation methods, used for aggregating metrics in a Node.js cluster.
+
+#### `CollectFunction`
+
+```ts
+type CollectFunction<T> = (this: T) => void | Promise<void>;
+```
+
+#### `MetricObject`
+
+```ts
+interface MetricObject {
+  name: string;
+  help: string;
+  type: MetricType;
+  aggregator: Aggregator;
+  collect: CollectFunction<any>;
+}
+```
+
+#### `MetricObjectWithValues`
+
+```ts
+interface MetricObjectWithValues<T extends MetricValue<string>> {
+  values: T[];
+  name: string;
+  help: string;
+  type: MetricType;
+  aggregator: Aggregator;
+  collect: CollectFunction<any>;
+}
+```
+
+#### `MetricValue`
+
+```ts
+type MetricValue<T extends string> = {
+  value: number;
+  labels: LabelValues<T>;
+};
+```
+
+#### `MetricValueWithName`
+
+```ts
+type MetricValueWithName<T extends string> = MetricValue<T> & {
+  metricName?: string;
+};
+```
+
+#### `LabelValues`
+
+```ts
+type LabelValues<T extends string> = Partial<Record<T, string | number>>;
+```
+
+#### `MetricConfiguration`
+
+```ts
+interface MetricConfiguration<T extends string> {
+  name: string;
+  help: string;
+  labelNames?: T[] | readonly T[];
+  registers?: (
+    | Registry<PrometheusContentType>
+    | Registry<OpenMetricsContentType>
+  )[];
+  aggregator?: Aggregator;
+  collect?: CollectFunction<any>;
+  enableExemplars?: boolean;
+}
+```
+
+#### `CounterConfiguration`
+
+```ts
+interface CounterConfiguration<T extends string> {
+  collect?: CollectFunction<Counter<T>>;
+  name: string;
+  help: string;
+  labelNames?: T[] | readonly T[];
+  registers?: (
+    | Registry<PrometheusContentType>
+    | Registry<OpenMetricsContentType>
+  )[];
+  aggregator?: Aggregator;
+  enableExemplars?: boolean;
+}
+```
+
+#### `IncreaseDataWithExemplar`
+
+```ts
+interface IncreaseDataWithExemplar<T extends string> {
+  value?: number;
+  labels?: LabelValues<T>;
+  exemplarLabels?: LabelValues<T>;
+}
+```
+
+#### `ObserveDataWithExemplar`
+
+```ts
+interface ObserveDataWithExemplar<T extends string> {
+  value: number;
+  labels?: LabelValues<T>;
+  exemplarLabels?: LabelValues<T>;
+}
+```
+
+#### `GaugeConfiguration`
+
+```ts
+interface GaugeConfiguration<T extends string> {
+  collect?: CollectFunction<Gauge<T>>;
+  name: string;
+  help: string;
+  labelNames?: T[] | readonly T[];
+  registers?: (
+    | Registry<PrometheusContentType>
+    | Registry<OpenMetricsContentType>
+  )[];
+  aggregator?: Aggregator;
+  enableExemplars?: boolean;
+}
+```
+
+#### `HistogramConfiguration`
+
+```ts
+interface HistogramConfiguration<T extends string> {
+  buckets?: number[];
+  collect?: CollectFunction<Histogram<T>>;
+  name: string;
+  help: string;
+  labelNames?: T[] | readonly T[];
+  registers?: (
+    | Registry<PrometheusContentType>
+    | Registry<OpenMetricsContentType>
+  )[];
+  aggregator?: Aggregator;
+  enableExemplars?: boolean;
+}
+```
+
+#### `SummaryConfiguration`
+
+```ts
+interface SummaryConfiguration<T extends string> {
+  percentiles?: number[];
+  maxAgeSeconds?: number;
+  ageBuckets?: number;
+  pruneAgedBuckets?: boolean;
+  compressCount?: number;
+  collect?: CollectFunction<Summary<T>>;
+  name: string;
+  help: string;
+  labelNames?: T[] | readonly T[];
+  registers?: (
+    | Registry<PrometheusContentType>
+    | Registry<OpenMetricsContentType>
+  )[];
+  aggregator?: Aggregator;
+  enableExemplars?: boolean;
+}
+```
+
+#### `DefaultMetricsCollectorConfiguration`
+
+```ts
+interface DefaultMetricsCollectorConfiguration<T extends RegistryContentType> {
+  register?: Registry<T>;
+  prefix?: string;
+  gcDurationBuckets?: number[];
+  eventLoopMonitoringPrecision?: number;
+  labels?: object;
+}
+```
+
+<!-- bare-refgen:api end -->
