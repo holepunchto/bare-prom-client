@@ -18,25 +18,17 @@ export type RegistryContentType =
 	| PrometheusContentType
 	| OpenMetricsContentType;
 
-/**
- * Container for all registered metrics
- */
+/** Container for all registered metrics */
 export class Registry<
 	BoundRegistryContentType extends RegistryContentType = PrometheusContentType,
 > {
-	/**
-	 * Get string representation for all metrics
-	 */
+	/** Get string representation for all metrics */
 	metrics(): Promise<string>;
 
-	/**
-	 * Remove all metrics from the registry
-	 */
+	/** Remove all metrics from the registry */
 	clear(): void;
 
-	/**
-	 * Reset all metrics in the registry
-	 */
+	/** Reset all metrics in the registry */
 	resetMetrics(): void;
 
 	/**
@@ -45,14 +37,10 @@ export class Registry<
 	 */
 	registerMetric<T extends string>(metric: Metric<T>): void;
 
-	/**
-	 * Get all metrics as objects
-	 */
+	/** Get all metrics as objects */
 	getMetricsAsJSON(): Promise<MetricObjectWithValues<MetricValue<string>>[]>;
 
-	/**
-	 * Get all metrics as objects
-	 */
+	/** Get all metrics as objects */
 	getMetricsAsArray(): MetricObject[];
 
 	/**
@@ -69,8 +57,7 @@ export class Registry<
 
 	/**
 	 * Set static labels to every metric emitted by this registry
-	 * @param labels of name/value pairs:
-	 * { defaultLabel: "value", anotherLabel: "value 2" }
+	 * @param labels of name/value pairs: { defaultLabel: "value", anotherLabel: "value 2" }
 	 */
 	setDefaultLabels(labels: object): void;
 
@@ -80,14 +67,11 @@ export class Registry<
 	 */
 	getSingleMetricAsString(name: string): Promise<string>;
 
-	/**
-	 * Gets the Content-Type of the metrics for use in the response headers.
-	 */
+	/** Gets the Content-Type of the metrics for use in the response headers. */
 	readonly contentType: BoundRegistryContentType;
 
 	/**
-	 * Set the content type of a registry. Used to change between Prometheus and
-	 * OpenMetrics versions.
+	 * Set the content type of a registry. Used to change between Prometheus and OpenMetrics versions.
 	 * @param contentType The type of the registry
 	 */
 	setContentType(contentType: BoundRegistryContentType): void;
@@ -98,37 +82,27 @@ export class Registry<
 	 */
 	static merge(registers: Registry[]): Registry;
 
-	/**
-	 * HTTP Prometheus Content-Type for metrics response headers.
-	 */
+	/** HTTP Prometheus Content-Type for metrics response headers. */
 	static PROMETHEUS_CONTENT_TYPE: PrometheusContentType;
 
-	/**
-	 * HTTP OpenMetrics Content-Type for metrics response headers.
-	 */
+	/** HTTP OpenMetrics Content-Type for metrics response headers. */
 	static OPENMETRICS_CONTENT_TYPE: OpenMetricsContentType;
 }
 export type Collector = () => void;
 
-/**
- * The register that contains all metrics
- */
+/** The register that contains all metrics */
 export const register: Registry;
 
 /**
- * HTTP Content-Type for metrics response headers for the default registry,
- * defaults to Prometheus text format.
+ * HTTP Content-Type for metrics response headers for the default registry, defaults to Prometheus
+ * text format.
  */
 export const contentType: RegistryContentType;
 
-/**
- * HTTP Prometheus Content-Type for metrics response headers.
- */
+/** HTTP Prometheus Content-Type for metrics response headers. */
 export const prometheusContentType: PrometheusContentType;
 
-/**
- * HTTP OpenMetrics Content-Type for metrics response headers.
- */
+/** HTTP OpenMetrics Content-Type for metrics response headers. */
 export const openMetricsContentType: OpenMetricsContentType;
 
 export class AggregatorRegistry<
@@ -136,18 +110,16 @@ export class AggregatorRegistry<
 > extends Registry<T> {
 	/**
 	 * Gets aggregated metrics for all workers.
-	 * @return {Promise<string>} Promise that resolves with the aggregated
-	 * metrics.
+	 * @return {Promise<string>} Promise that resolves with the aggregated metrics.
 	 */
 	clusterMetrics(): Promise<string>;
 
 	/**
-	 * Creates a new Registry instance from an array of metrics that were
-	 * created by `registry.getMetricsAsJSON()`. Metrics are aggregated using
-	 * the method specified by their `aggregator` property, or by summation if
-	 * `aggregator` is undefined.
-	 * @param {Array} metricsArr Array of metrics, each of which created by
-	 *   `registry.getMetricsAsJSON()`.
+	 * Creates a new Registry instance from an array of metrics that were created by
+	 * `registry.getMetricsAsJSON()`. Metrics are aggregated using the method specified by their
+	 * `aggregator` property, or by summation if `aggregator` is undefined.
+	 * @param {Array} metricsArr Array of metrics, each of which created by  
+	 * `registry.getMetricsAsJSON()`.
 	 * @return {Registry} aggregated registry.
 	 */
 	static aggregate<T extends RegistryContentType>(
@@ -155,10 +127,9 @@ export class AggregatorRegistry<
 	): Registry<T>; // TODO Promise?
 
 	/**
-	 * Sets the registry or registries to be aggregated. Call from workers to
-	 * use a registry/registries other than the default global registry.
-	 * @param {Array<Registry>|Registry} regs Registry or registries to be
-	 *   aggregated.
+	 * Sets the registry or registries to be aggregated. Call from workers to use a registry/registries
+	 * other than the default global registry.
+	 * @param {Array<Registry>|Registry} regs Registry or registries to be   aggregated.
 	 * @return {void}
 	 */
 	static setRegistries(
@@ -171,18 +142,14 @@ export class AggregatorRegistry<
 	): void;
 }
 
-/**
- * General metric type
- */
+/** General metric type */
 export type Metric<T extends string = string> =
 	| Counter<T>
 	| Gauge<T>
 	| Summary<T>
 	| Histogram<T>;
 
-/**
- * Aggregation methods, used for aggregating metrics in a Node.js cluster.
- */
+/** Aggregation methods, used for aggregating metrics in a Node.js cluster. */
 export type Aggregator = 'omit' | 'sum' | 'first' | 'min' | 'max' | 'average';
 
 export enum MetricType {
@@ -276,9 +243,7 @@ export class Counter<T extends string = string> {
 	 */
 	inc(incData: IncreaseDataWithExemplar<T>): void;
 
-	/**
-	 * Get counter metric object
-	 */
+	/** Get counter metric object */
 	get(): Promise<MetricObjectWithValues<MetricValue<T>>>;
 
 	/**
@@ -295,9 +260,7 @@ export class Counter<T extends string = string> {
 	 */
 	labels(labels: LabelValues<T>): Counter.Internal;
 
-	/**
-	 * Reset counter values
-	 */
+	/** Reset counter values */
 	reset(): void;
 
 	/**
@@ -377,9 +340,7 @@ export class Gauge<T extends string = string> {
 	 */
 	set(value: number): void;
 
-	/**
-	 * Get gauge metric object
-	 */
+	/** Get gauge metric object */
 	get(): Promise<MetricObjectWithValues<MetricValue<T>>>;
 
 	/**
@@ -389,11 +350,11 @@ export class Gauge<T extends string = string> {
 	setToCurrentTime(labels?: LabelValues<T>): void;
 
 	/**
-	 * Start a timer. Calling the returned function will set the gauge's value
-	 * to the observed duration in seconds.
+	 * Start a timer. Calling the returned function will set the gauge's value to the observed duration
+	 * in seconds.
 	 * @param labels Object with label keys and values
-	 * @return Function to invoke when timer should be stopped. The value it
-	 * returns is the timed duration.
+	 * @return Function to invoke when timer should be stopped. The value it returns is the timed
+	 * duration.
 	 */
 	startTimer(labels?: LabelValues<T>): (labels?: LabelValues<T>) => number;
 
@@ -411,9 +372,7 @@ export class Gauge<T extends string = string> {
 	 */
 	labels(labels: LabelValues<T>): Gauge.Internal<T>;
 
-	/**
-	 * Reset gauge values
-	 */
+	/** Reset gauge values */
 	reset(): void;
 
 	/**
@@ -450,16 +409,14 @@ export namespace Gauge {
 		 */
 		set(value: number): void;
 
-		/**
-		 * Set gauge value to current epoch time in ms
-		 */
+		/** Set gauge value to current epoch time in ms */
 		setToCurrentTime(): void;
 
 		/**
-		 * Start a timer. Calling the returned function will set the gauge's value
-		 * to the observed duration in seconds.
-		 * @return Function to invoke when timer should be stopped. The value it
-		 * returns is the timed duration.
+		 * Start a timer. Calling the returned function will set the gauge's value to the observed
+		 * duration in seconds.
+		 * @return Function to invoke when timer should be stopped. The value it returns is the timed
+		 * duration.
 		 */
 		startTimer(): (labels?: LabelValues<T>) => number;
 	}
@@ -472,7 +429,8 @@ export interface HistogramConfiguration<T extends string>
 }
 
 /**
- * A histogram samples observations (usually things like request durations or response sizes) and counts them in configurable buckets
+ * A histogram samples observations (usually things like request durations or response sizes) and
+ * counts them in configurable buckets
  */
 export class Histogram<T extends string = string> {
 	/**
@@ -498,41 +456,35 @@ export class Histogram<T extends string = string> {
 	 */
 	observe(observeData: ObserveDataWithExemplar<T>): void;
 
-	/**
-	 * Get histogram metric object
-	 */
+	/** Get histogram metric object */
 	get(): Promise<MetricObjectWithValues<MetricValueWithName<T>>>;
 
 	/**
-	 * Start a timer. Calling the returned function will observe the duration in
-	 * seconds in the histogram.
+	 * Start a timer. Calling the returned function will observe the duration in seconds in the
+	 * histogram.
 	 * @param labels Object with label keys and values
-	 * @return Function to invoke when timer should be stopped. The value it
-	 * returns is the timed duration.
+	 * @return Function to invoke when timer should be stopped. The value it returns is the timed
+	 * duration.
 	 */
 	startTimer(labels?: LabelValues<T>): (labels?: LabelValues<T>) => number;
 
 	/**
-	 * Start a timer with exemplar. Calling the returned function will observe the duration in
-	 * seconds in the histogram.
+	 * Start a timer with exemplar. Calling the returned function will observe the duration in seconds
+	 * in the histogram.
 	 * @param labels Object with label keys and values
 	 * @param exemplarLabels Object with label keys and values for exemplars
-	 * @return Function to invoke when timer should be stopped. The value it
-	 * returns is the timed duration.
+	 * @return Function to invoke when timer should be stopped. The value it returns is the timed
+	 * duration.
 	 */
 	startTimer(
 		labels?: LabelValues<T>,
 		exemplarLabels?: LabelValues<T>,
 	): (labels?: LabelValues<T>, exemplarLabels?: LabelValues<T>) => number;
 
-	/**
-	 * Reset histogram values
-	 */
+	/** Reset histogram values */
 	reset(): void;
 
-	/**
-	 * Initialize the metrics for the given combination of labels to zero
-	 */
+	/** Initialize the metrics for the given combination of labels to zero */
 	zero(labels: LabelValues<T>): void;
 
 	/**
@@ -572,19 +524,17 @@ export namespace Histogram {
 		observe(value: number): void;
 
 		/**
-		 * Start a timer. Calling the returned function will observe the
-		 * duration in seconds in the histogram.
+		 * Start a timer. Calling the returned function will observe the duration in seconds in the
+		 * histogram.
 		 * @param labels Object with label keys and values
-		 * @return Function to invoke when timer should be stopped. The value it
-		 * returns is the timed duration.
+		 * @return Function to invoke when timer should be stopped. The value it returns is the timed
+		 * duration.
 		 */
 		startTimer(): (labels?: LabelValues<T>) => void;
 	}
 
 	interface Config {
-		/**
-		 * Buckets used in the histogram
-		 */
+		/** Buckets used in the histogram */
 		buckets?: number[];
 	}
 }
@@ -599,9 +549,7 @@ export interface SummaryConfiguration<T extends string>
 	collect?: CollectFunction<Summary<T>>;
 }
 
-/**
- * A summary samples observations
- */
+/** A summary samples observations */
 export class Summary<T extends string = string> {
 	/**
 	 * @param configuration Configuration when creating Summary metric. Name and Help is mandatory
@@ -620,22 +568,18 @@ export class Summary<T extends string = string> {
 	 */
 	observe(labels: LabelValues<T>, value: number): void;
 
-	/**
-	 * Get summary metric object
-	 */
+	/** Get summary metric object */
 	get(): Promise<MetricObjectWithValues<MetricValueWithName<T>>>;
 
 	/**
-	 * Start a timer. Calling the returned function will observe the duration in
-	 * seconds in the summary.
+	 * Start a timer. Calling the returned function will observe the duration in seconds in the
+	 * summary.
 	 * @param labels Object with label keys and values
 	 * @return Function to invoke when timer should be stopped
 	 */
 	startTimer(labels?: LabelValues<T>): (labels?: LabelValues<T>) => number;
 
-	/**
-	 * Reset all values in the summary
-	 */
+	/** Reset all values in the summary */
 	reset(): void;
 
 	/**
@@ -675,26 +619,22 @@ export namespace Summary {
 		observe(value: number): void;
 
 		/**
-		 * Start a timer. Calling the returned function will observe the
-		 * duration in seconds in the summary.
+		 * Start a timer. Calling the returned function will observe the duration in seconds in the
+		 * summary.
 		 * @param labels Object with label keys and values
-		 * @return Function to invoke when timer should be stopped. The value it
-		 * returns is the timed duration.
+		 * @return Function to invoke when timer should be stopped. The value it returns is the timed
+		 * duration.
 		 */
 		startTimer(): (labels?: LabelValues<T>) => number;
 	}
 
 	interface Config {
-		/**
-		 * Configurable percentiles, values should never be greater than 1
-		 */
+		/** Configurable percentiles, values should never be greater than 1 */
 		percentiles?: number[];
 	}
 }
 
-/**
- * Push metrics to a Pushgateway
- */
+/** Push metrics to a Pushgateway */
 export class Pushgateway<T extends RegistryContentType> {
 	/**
 	 * @param url Complete url to the Pushgateway. If port is needed append url with :port
@@ -730,13 +670,9 @@ export class Pushgateway<T extends RegistryContentType> {
 
 export namespace Pushgateway {
 	interface Parameters {
-		/**
-		 * Jobname that is pushing the metric
-		 */
+		/** Jobname that is pushing the metric */
 		jobName: string;
-		/**
-		 * Label sets used in the url when making a request to the Pushgateway,
-		 */
+		/** Label sets used in the url when making a request to the Pushgateway, */
 		groupings?: {
 			[key: string]: string;
 		};
