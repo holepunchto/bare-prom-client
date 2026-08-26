@@ -38,6 +38,4 @@ worker processes.
 
 ## API
 
-See the [`bare-prom-client` reference][reference].
-
-[reference]: https://docs.pears.com/reference/bare/modules/bare-prom-client
+See the [`bare-prom-client` reference](https://docs.pears.com/reference/bare/modules/bare-prom-client).
