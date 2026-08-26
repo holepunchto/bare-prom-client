@@ -11,6 +11,8 @@ project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- types: document the public API with JSDoc comments, and link the README API section to the online reference
+
 ### Added
 
 [unreleased]: https://github.com/siimon/prom-client/compare/v15.1.3...HEAD
