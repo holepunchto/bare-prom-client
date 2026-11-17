@@ -86,7 +86,7 @@
 		"@opentelemetry/api": "^1.4.0",
 		"bare-fs": "^4.5.1",
 		"bare-http1": "^4.1.6",
-		"bare-https": "^3.0.0",
+		"bare-https": "^4.0.0",
 		"bare-performance": "^2.0.0",
 		"bare-process": "^4.2.2",
 		"bare-url": "^2.3.2",
